@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>William & Angel | Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; font-family: 'Inter', sans-serif; background: #f8fafc; color: #1e293b; overflow-x: hidden; }
+        .container-wide { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .page { display: none; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .topbar { display: flex; align-items: center; justify-content: space-between; padding: 15px 25px; background: #0966cf; color: white; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .brand { font-weight: 800; font-size: 22px; letter-spacing: -0.5px; }
+
+        /* CATEGORY BAR */
+        .cat-bar { display: flex; gap: 10px; overflow-x: auto; padding: 15px 20px; background: white; border-bottom: 1px solid #e2e8f0; scrollbar-width: none; }
+        .cat-bar::-webkit-scrollbar { display: none; }
+        .cat-btn { white-space: nowrap; padding: 8px 18px; border-radius: 20px; background: #f1f5f9; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+        .cat-btn.active { background: #0966cf; color: white; border-color: #0966cf; }
+
+        .hero-section { padding: 40px 0; background: #e0f2f1; text-align: center; }
+        .river-container { display: flex; white-space: nowrap; width: 200%; animation: drift 25s linear infinite; margin-top: 20px; }
+        @keyframes drift { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }
+        .water-image { width: 180px; height: 240px; margin: 0 10px; border-radius: 15px; object-fit: cover; }
+
+        .nav-tabs { display: flex; gap: 10px; margin: 20px 0; }
+        .nav-tabs button { flex: 1; padding: 12px; border-radius: 12px; background: #fff; color: #0966cf; font-weight: 600; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; padding: 20px 0; }
+        .product-card { background: #fff; border-radius: 16px; padding: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #f1f5f9; }
+        .main-img { width: 100%; height: 280px; object-fit: cover; border-radius: 12px; }
+        .thumb-group { display: flex; gap: 8px; margin: 12px 0; justify-content: center; }
+        .thumb { width: 45px; height: 45px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 2px solid transparent; }
+        .thumb:hover { border-color: #0966cf; }
+        .price-tag { font-size: 20px; font-weight: 700; color: #0f172a; margin: 10px 0; }
+        .buy-btn { width: 100%; background: #0966cf; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+        .status-pill { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .pending { background: #fef3c7; color: #92400e; }
+    </style>
+</head>
+<body>
+
+<header class="topbar">
+    <div class="brand">W&A STORE</div>
+    <button onclick="showPage('cartPage')" class="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-lg">
+        <span id="cartCount">0</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+    </button>
+</header>
+
+<div class="cat-bar" id="categoryBar">
+    <div class="cat-btn active" onclick="filterCat('All', this)">All Items</div>
+    <div class="cat-btn" onclick="filterCat('Men’s Clothing', this)">Men's Fashion</div>
+    <div class="cat-btn" onclick="filterCat('Women’s Clothing', this)">Women's Fashion</div>
+    <div class="cat-btn" onclick="filterCat('Mobile Phones', this)">Phones</div>
+    <div class="cat-btn" onclick="filterCat('Laptops & Computers', this)">Laptops</div>
+    <div class="cat-btn" onclick="filterCat('Shoes & Footwear', this)">Shoes</div>
+</div>
+
+<div class="container-wide">
+    <div class="nav-tabs">
+        <button onclick="showPage('shopPage')">Shop</button>
+        <button onclick="showPage('ordersPage')">My Orders</button>
+    </div>
+
+    <div id="shopPage" class="page" style="display:block;">
+        <div id="productList" class="products-grid"></div>
+    </div>
+
+    <div id="cartPage" class="page">
+        <div class="max-w-xl mx-auto bg-white p-6 rounded-2xl shadow-sm border">
+            <h2 class="text-2xl font-bold mb-6">Your Cart</h2>
+            <div id="cartItems" class="space-y-4 mb-6"></div>
+            <div class="flex justify-between items-center text-xl font-bold border-t pt-4">
+                <span>Total:</span>
+                <span class="text-blue-600"><span id="total">0</span> RWF</span>
+            </div>
+            <button class="buy-btn mt-6 py-4" onclick="checkout()">Place Order via WhatsApp</button>
+        </div>
+    </div>
+
+    <div id="ordersPage" class="page">
+        <div class="max-w-2xl mx-auto">
+            <h2 class="text-2xl font-bold mb-6">Order History</h2>
+            <div id="myOrders" class="space-y-4"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let products = JSON.parse(localStorage.getItem("products")) || [];
+    let cart = [];
+    let currentCategory = "All";
+
+    function showPage(p) {
+        document.querySelectorAll(".page").forEach(x => x.style.display = "none");
+        document.getElementById(p).style.display = "block";
+        if(p === 'shopPage') renderProducts();
+        if(p === 'cartPage') renderCart();
+        if(p === 'ordersPage') renderOrders();
+    }
+
+    function filterCat(cat, btn) {
+        currentCategory = cat;
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderProducts();
+    }
+
+    function renderProducts() {
+        const list = document.getElementById("productList");
+        products = JSON.parse(localStorage.getItem("products")) || [];
+        
+        // Filter Logic
+        const filtered = currentCategory === "All" 
+            ? products 
+            : products.filter(p => p.category === currentCategory);
+
+        if (filtered.length === 0) {
+            list.innerHTML = `<div class="col-span-full text-center py-20 text-slate-400">No items found in ${currentCategory}.</div>`;
+            return;
+        }
+
+        list.innerHTML = filtered.map((p, i) => {
+            const imageList = p.imgs || [];
+            return `
+                <div class="product-card">
+                    <img id="mainView${i}" src="${imageList[0]}" class="main-img">
+                    <div class="thumb-group">
+                        ${imageList.map(img => `<img src="${img}" class="thumb" onclick="document.getElementById('mainView${i}').src='${img}'">`).join('')}
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-800">${p.name}</h3>
+                    <div class="price-tag">${Number(p.price).toLocaleString()} RWF</div>
+                    <div class="my-3">
+                        <select id="sizeSelect${i}" class="w-full p-2 bg-slate-50 rounded-md border ring-1 ring-slate-200">
+                            ${p.variants.map(sz => `<option value="${sz}">${sz}</option>`).join('')}
+                        </select>
+                    </div>
+                    <button class="buy-btn" onclick="addToCartByObj(${JSON.stringify(p).replace(/"/g, '&quot;')}, ${i})">Add to Cart</button>
+                </div>
+            `;
+        }).join("");
+    }
+
+    function addToCartByObj(product, index) {
+        const size = document.getElementById(`sizeSelect${index}`).value;
+        cart.push({ name: product.name, price: Number(product.price), chosenSize: size });
+        document.getElementById("cartCount").innerText = cart.length;
+        alert("Added to cart!");
+    }
+
+    function renderCart() {
+        const container = document.getElementById("cartItems");
+        let total = 0;
+        if(cart.length === 0) {
+            container.innerHTML = `<p class="text-slate-400">Your cart is empty.</p>`;
+            document.getElementById("total").innerText = 0;
+            return;
+        }
+        container.innerHTML = cart.map(item => {
+            total += item.price;
+            return `<div class="flex justify-between bg-slate-50 p-4 rounded-xl">
+                <div><p class="font-bold">${item.name}</p><p class="text-xs text-slate-500">Size: ${item.chosenSize}</p></div>
+                <span class="font-bold">${item.price.toLocaleString()} RWF</span>
+            </div>`;
+        }).join("");
+        document.getElementById("total").innerText = total.toLocaleString();
+    }
+
+    function checkout() {
+        if(cart.length === 0) return;
+        const phone = "250784040780";
+        let totalVal = cart.reduce((s, i) => s + i.price, 0);
+        
+        // WhatsApp Message
+        // 1. Declare the message once with the header
+let msg = `*W&A STORE - NEW ORDER*\n`;
+msg += `--------------------------\n\n`;
+
+// 2. Add each item from the cart
+cart.forEach((item, i) => {
+    msg += `${i + 1}. *${item.name}*\n`;
+    msg += `   Size: ${item.chosenSize}\n`;
+    msg += `   Price: ${item.price.toLocaleString()} RWF\n\n`;
+});
+
+// 3. Add the footer and total
+msg += `--------------------------\n`;
+msg += `*TOTAL AMOUNT: ${totalVal.toLocaleString()} RWF*\n\n`;
+msg += `_Please confirm my order!_`;
+
+// 4. Send to WhatsApp
+const finalUrl = `https://wa.me/250784040780?text=${encodeURIComponent(msg)}`;
+window.open(finalUrl, "_blank");
+
+        // Sync with Back Office
+        let orders = JSON.parse(localStorage.getItem("orders")) || [];
+        orders.push({
+            id: Date.now(),
+            items: cart.map(i => `${i.name} (${i.chosenSize})`).join(", "),
+            total: totalVal,
+            status: "Pending",
+            date: new Date().toLocaleString()
+        });
+        localStorage.setItem("orders", JSON.stringify(orders));
+
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+        cart = [];
+        document.getElementById("cartCount").innerText = "0";
+        showPage("ordersPage");
+    }
+
+    function renderOrders() {
+        const container = document.getElementById("myOrders");
+        const orders = JSON.parse(localStorage.getItem("orders")) || [];
+        container.innerHTML = orders.slice().reverse().map(o => `
+            <div class="bg-white p-5 rounded-2xl shadow-sm border mb-4">
+                <div class="flex justify-between mb-2">
+                    <span class="text-xs text-slate-400">${o.date}</span>
+                    <span class="status-pill pending">${o.status}</span>
+                </div>
+                <p class="font-semibold">${o.items}</p>
+                <p class="mt-2 font-bold text-blue-600">${Number(o.total).toLocaleString()} RWF</p>
+            </div>
+        `).join("");
+    }
+
+    renderProducts();
+</script>
+</body>
+</html>
