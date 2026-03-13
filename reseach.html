@@ -43,18 +43,92 @@
         .thumb { width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
         .btn-del { color: var(--danger); background: none; border: 1px solid var(--danger); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; }
         .btn-del:hover { background: var(--danger); color: white; }
+        
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: linear-gradient(135deg, var(--primary) 0%, #0555b8 100%); color: white; padding: 25px; border-radius: 12px; text-align: center; }
+        .stat-card.success { background: linear-gradient(135deg, var(--success) 0%, #059669 100%); }
+        .stat-card.danger { background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%); }
+        .stat-value { font-size: 32px; font-weight: 700; margin: 10px 0; }
+        .stat-label { font-size: 14px; opacity: 0.9; }
+        
+        .order-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .order-id { font-weight: 700; color: var(--primary); }
+        .order-status { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-confirmed { background: #d1fae5; color: #065f46; }
     </style>
 </head>
 <body>
 
 <aside>
-    <div class="side-head">W&A ADMIN</div>
-    <div class="nav-link active">📦 Inventory Manager</div>
-    <div class="nav-link" onclick="alert('Coming soon!')">🛒 Orders Feed</div>
-    <div class="nav-link" style="margin-top: auto; border-top: 1px solid #1e293b;">Logout</div>
+    <div class="side-head">W&A ANALYTICS</div>
+    <div class="nav-link active" onclick="switchTab('dashboard')">📊 Dashboard</div>
+    <div class="nav-link" onclick="switchTab('orders')">📋 Order Tracking</div>
+    <div class="nav-link" onclick="switchTab('products')">📦 Products</div>
+    <div class="nav-link" style="margin-top: auto; border-top: 1px solid #1e293b; cursor: pointer;" onclick="location.href='index.html'">← Back to Store</div>
 </aside>
 
+<!-- login overlay -->
+<div id="loginOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:2000;">
+    <div style="background:white;padding:30px;border-radius:12px;min-width:320px;text-align:center;">
+        <h2>Enter Password</h2>
+        <input id="loginInput" type="password" placeholder="Password" style="width:100%;padding:10px;margin:10px 0;border:1px solid #ccc;border-radius:6px;">
+        <button onclick="checkResearchPassword()" style="background:#0966cf;color:white;padding:10px 20px;border:none;border-radius:6px;cursor:pointer;">Enter</button>
+    </div>
+</div>
+
 <main>
+    <div id="dashboardTab">
+        <h2>📊 Analytics Dashboard</h2>
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Orders</div>
+                <div class="stat-value" id="totalOrders">0</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-label">Confirmed Orders</div>
+                <div class="stat-value" id="confirmedOrders">0</div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-label">Pending Orders</div>
+                <div class="stat-value" id="pendingOrders">0</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-label">Total Revenue</div>
+                <div class="stat-value" id="totalRevenue">0</div>
+            </div>            <div class="stat-card">
+                <div class="stat-label">Total Rentals</div>
+                <div class="stat-value" id="totalRentals">0</div>
+            </div>        </div>
+    </div>
+
+    <div id="ordersTab" style="display: none;">
+        <h2>📋 Order Tracking</h2>
+        <div id="trackingList" style="margin-top: 20px;"></div>
+    </div>
+
+    <div id="productsTab" style="display: none;">
+        <h2>📦 Products Overview</h2>
+        <div class="card" style="padding: 0;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Images</th>
+                        <th>Details</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Total Sales</th>
+                    </tr>
+                </thead>
+                <tbody id="productsList"></tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<!-- Backup Old Main -->
+<main id="oldMainContent" style="display: none; margin-left: 260px; padding: 40px;">
     <h2>Add New Product</h2>
     <div class="card">
         <div class="form-grid">
@@ -110,7 +184,120 @@
 </main>
 
 <script>
-    let products = JSON.parse(localStorage.getItem("products")) || [];
+    // analytics login overlay
+    const RESEARCH_PASSWORD = 'stats456';
+    function checkResearchPassword(){
+        const val=document.getElementById('loginInput').value;
+        if(val===RESEARCH_PASSWORD){
+            document.getElementById('loginOverlay').style.display='none';
+        } else {
+            alert('Incorrect password');
+        }
+    }
+    let products = [];
+    const API_URL = 'http://localhost:3000/api';
+
+    function switchTab(tab) {
+        document.getElementById('dashboardTab').style.display = tab === 'dashboard' ? 'block' : 'none';
+        document.getElementById('ordersTab').style.display = tab === 'orders' ? 'block' : 'none';
+        document.getElementById('productsTab').style.display = tab === 'products' ? 'block' : 'none';
+        
+        document.querySelectorAll('.nav-link').forEach((link, i) => {
+            if((i === 0 && tab === 'dashboard') || (i === 1 && tab === 'orders') || (i === 2 && tab === 'products')) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+
+        if(tab === 'dashboard') updateDashboard();
+        if(tab === 'orders') renderTracking();
+        if(tab === 'products') renderProductsOverview();
+    }
+
+    function updateDashboard() {
+        Promise.all([
+            fetch(`${API_URL}/orders`).then(res => res.json()),
+            fetch(`${API_URL}/rentals`).then(res => res.json())
+        ]).then(([orders, rentals]) => {
+            const totalOrders = orders.length;
+            const confirmedOrders = orders.filter(o => o.status === 'Confirmed').length;
+            const pendingOrders = orders.filter(o => o.status === 'Pending').length;
+            const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total), 0);
+            const totalRentals = rentals.length;
+
+            document.getElementById('totalOrders').textContent = totalOrders;
+            document.getElementById('confirmedOrders').textContent = confirmedOrders;
+            document.getElementById('pendingOrders').textContent = pendingOrders;
+            document.getElementById('totalRevenue').textContent = totalRevenue.toLocaleString() + ' RWF';
+            document.getElementById('totalRentals').textContent = totalRentals;
+        }).catch(err => console.error('Error fetching dashboard data:', err));
+    }
+
+    function renderTracking() {
+        const container = document.getElementById('trackingList');
+        fetch(`${API_URL}/orders`)
+            .then(res => res.json())
+            .then(orders => {
+                if(orders.length === 0) {
+                    container.innerHTML = '<div class="card"><p style="color: #94a3b8; text-align: center;">No orders yet</p></div>';
+                    return;
+                }
+
+                container.innerHTML = orders.slice().reverse().map(order => `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <div>
+                                <div class="order-id">Order #${order._id}</div>
+                                <small style="color: #64748b;">${order.date}</small>
+                            </div>
+                            <span class="order-status ${order.status === 'Confirmed' ? 'status-confirmed' : 'status-pending'}">${order.status}</span>
+                        </div>
+                        <div>
+                            <p style="font-weight: 600; margin-bottom: 10px;">Delivery Address: ${order.address || 'N/A'}</p>
+                            <p style="font-weight: 600; margin-bottom: 10px;">Items: ${order.items.map(i => `${i.name} (${i.chosenSize}) x${i.quantity}`).join(", ")}</p>
+                            <p style="font-weight: 700; color: var(--primary); margin: 0;">Total: ${Number(order.total).toLocaleString()} RWF</p>
+                        </div>
+                    </div>
+                `).join("");
+            })
+            .catch(err => console.error('Error fetching orders:', err));
+    }
+
+    function renderProductsOverview() {
+        const container = document.getElementById('productsList');
+        
+        Promise.all([
+            fetch(`${API_URL}/products`).then(res => res.json()),
+            fetch(`${API_URL}/orders`).then(res => res.json())
+        ]).then(([productsData, orders]) => {
+            // Count products in orders
+            const productSales = {};
+            orders.forEach(order => {
+                order.items.forEach(item => {
+                    const productName = item.name;
+                    productSales[productName] = (productSales[productName] || 0) + item.quantity;
+                });
+            });
+
+            container.innerHTML = productsData.map(p => `
+                <tr>
+                    <td><img src="${p.imgs[0]}" class="thumb"></td>
+                    <td>
+                        <b>${p.name}</b><br>
+                        <small>${p.variants.join(", ")}</small>
+                    </td>
+                    <td><span style="font-size:12px; background:#e2e8f0; padding:2px 8px; border-radius:4px">${p.category}</span></td>
+                    <td><b>${Number(p.price).toLocaleString()} RWF</b></td>
+                    <td><b>${productSales[p.name] || 0}</b></td>
+                </tr>
+            `).join("");
+        })
+        .catch(err => console.error('Error fetching data:', err));
+    }
+
+    // Initialize dashboard on load
+    updateDashboard();
 
     const fileToBase64 = file => new Promise((resolve) => {
         if(!file) resolve("https://via.placeholder.com/300"); // Fallback for missing imgs

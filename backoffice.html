@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ANGEL STORE | Back Office Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
+
+<style>
         :root {
             --sidebar-bg: #0f172a;
             --primary: #0966cf;
@@ -43,53 +44,154 @@
         .thumb { width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
         .btn-del { color: var(--danger); background: none; border: 1px solid var(--danger); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; }
         .btn-del:hover { background: var(--danger); color: white; }
-    </style>
+        
+        .order-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .order-id { font-weight: 700; color: var(--primary); }
+        .order-status { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-confirmed { background: #d1fae5; color: #065f46; }
+        .order-item { display: flex; gap: 15px; margin: 12px 0; padding: 12px; background: #f8fafc; border-radius: 8px; }
+        .order-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; }
+        .order-item-details { flex: 1; font-size: 14px; }
+        .btn-confirm { background: var(--success); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .btn-confirm:hover { opacity: 0.9; }
+</style>
 </head>
 <body>
 
 <aside>
     <div class="side-head">ANGEL STORE ADMIN</div>
-    <div class="nav-link active">📦 Inventory Manager</div>
-    <div class="nav-link" onclick="alert('Coming soon!')">🛒 Orders Feed</div>
-    <div class="nav-link" style="margin-top: auto; border-top: 1px solid #1e293b;">Logout</div>
+    <div class="nav-link active" onclick="switchTab('inventory')">📦 Inventory Manager</div>
+    <div class="nav-link" onclick="switchTab('orders')">🛒 Orders Feed</div>
+    <div class="nav-link" style="margin-top: auto; border-top: 1px solid #1e293b; cursor: pointer;" onclick="location.href='index.html'">← Back to Store</div>
 </aside>
 
+<!-- login overlay -->
+<div id="loginOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:2000;">
+    <div style="background:white;padding:30px;border-radius:12px;min-width:320px;text-align:center;">
+        <h2>Admin Login</h2>
+        <input id="loginInput" type="password" placeholder="Password" style="width:100%;padding:10px;margin:10px 0;border:1px solid #ccc;border-radius:6px;">
+        <button onclick="checkBackofficePassword()" style="background:#0966cf;color:white;padding:10px 20px;border:none;border-radius:6px;cursor:pointer;">Enter</button>
+    </div>
+</div>
+
 <main>
-    <h2>New Product</h2>
+    <h2>New Listing</h2>
     <div class="card">
-        <div class="form-grid"> 
-            <div>
-                <label>Product Name</label>
-                <input type="text" id="pName" placeholder="Nike Air Force 1">
-            </div>
-            <div>
-                <label>Category</label>
-                <select id="pCategory">
-                    <option value="Men’s Clothing">Men's Fashion</option>
-                    <option value="Women’s Clothing">Women's Fashion</option>
-                    <option value="Mobile Phones">Phones</option>
-                    <option value="Laptops & Computers">Laptops</option>
-                    <option value="Shoes & Footwear">Shoes</option>
+        <div class="form-grid">
+            <div class="full-width">
+                <label>Type</label>
+                <select id="listingType" onchange="toggleListingFields()">
+                    <option value="product">Product</option>
+                    <option value="rental">Rental</option>
                 </select>
             </div>
-            <div>
-                <label>Retail Price (RWF)</label>
-                <input type="number" id="pPrice" placeholder="50000">
+        </div>
+
+        <!-- product fields -->
+        <div id="productFields">
+            <div class="form-grid"> 
+                <div>
+                    <label>Product Name</label>
+                    <input type="text" id="pName" placeholder="Nike Air Force 1">
+                </div>
+                <div>
+                    <label>Category</label>
+                    <select id="pCategory">
+                        <option value="Men’s Clothing">Men's Fashion</option>
+                        <option value="Women’s Clothing">Women's Fashion</option>
+                        <option value="Mobile Phones">Phones</option>
+                        <option value="Laptops & Computers">Laptops</option>
+                        <option value="Shoes & Footwear">Shoes</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Retail Price (RWF)</label>
+                    <input type="number" id="pPrice" placeholder="50000">
+                </div>
+                <div>
+                    <label>Available Sizes (comma separated)</label>
+                    <input type="text" id="pSizes" placeholder="38, 39, 40, 42">
+                </div>
             </div>
-            <div>
-                <label>Available Sizes (comma separated)</label>
-                <input type="text" id="pSizes" placeholder="38, 39, 40, 42">
+
+            <label>Product Images (Main, Side, Back)</label>
+            <div class="upload-row">
+                <div class="upload-box"><input type="file" id="img1" accept="image/*"></div>
+                <div class="upload-box"><input type="file" id="img2" accept="image/*"></div>
+                <div class="upload-box"><input type="file" id="img3" accept="image/*"></div>
             </div>
         </div>
 
-        <label>Product Images (Main, Side, Back)</label>
+        <!-- rental fields -->
+        <div id="rentalFields" style="display:none;">
+            <div class="form-grid">
+                <div>
+                    <label>Title</label>
+                    <input type="text" id="rTitle" placeholder="3-bedroom house in Kicukiro">
+                </div>
+                <div>
+                    <label>Location</label>
+                    <input type="text" id="rLocation" placeholder="Kigali, Kicukiro">
+                </div>
+                <div>
+                    <label>Address</label>
+                    <select id="rAddress2" class="w-full p-2 bg-slate-50 rounded-md border ring-1 ring-slate-200">
+                        <option value="">-- select address --</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Price/Month (RWF)</label>
+                    <input type="number" id="rPrice" placeholder="250000">
+                </div>
+                <div>
+                    <label>Rooms</label>
+                    <input type="number" id="rRooms" placeholder="3">
+                </div>
+            </div>
+            <label>Photos (main, additional)</label>
+            <div class="upload-row">
+                <div class="upload-box"><input type="file" id="rimg1" accept="image/*"></div>
+                <div class="upload-box"><input type="file" id="rimg2" accept="image/*"></div>
+                <div class="upload-box"><input type="file" id="rimg3" accept="image/*"></div>
+            </div>
+        </div>
+
+        <button class="btn-save" onclick="handleSave()">Save Listing</button>
+    </div>
+
+    <h2 style="margin-top: 50px;">New Rental Listing</h2>
+    <div class="card">
+        <div class="form-grid">
+            <div>
+                <label>Title</label>
+                <input type="text" id="rTitle" placeholder="3-bedroom house in Kicukiro">
+            </div>
+            <div>
+                <label>Location</label>
+                <input type="text" id="rLocation" placeholder="Kigali, Kicukiro">
+            </div>
+            <div>                <label>Address</label>
+                <select id="rAddress" class="w-full p-2 bg-slate-50 rounded-md border ring-1 ring-slate-200">
+                    <option value="">-- select address --</option>
+                </select>
+            </div>
+            <div>                <label>Price (RWF/month)</label>
+                <input type="number" id="rPrice" placeholder="250000">
+            </div>
+            <div>
+                <label>Rooms</label>
+                <input type="number" id="rRooms" placeholder="3">
+            </div>
+        </div>
+        <label>Photos (main, additional)</label>
         <div class="upload-row">
-            <div class="upload-box"><input type="file" id="img1" accept="image/*"></div>
-            <div class="upload-box"><input type="file" id="img2" accept="image/*"></div>
-            <div class="upload-box"><input type="file" id="img3" accept="image/*"></div>
+            <div class="upload-box"><input type="file" id="rimg1" accept="image/*"></div>
+            <div class="upload-box"><input type="file" id="rimg2" accept="image/*"></div>
+            <div class="upload-box"><input type="file" id="rimg3" accept="image/*"></div>
         </div>
-
-        <button class="btn-save" onclick="handleSave()">Save Product to Store</button>
+        <button class="btn-save" onclick="handleRentalSave()">Save Rental</button>
     </div>
 
     <h2 style="margin-top: 50px;">Live Inventory</h2>
@@ -107,84 +209,388 @@
             <tbody id="inventoryList"></tbody>
         </table>
     </div>
+
+    <!-- rental inventory section -->
+    <h2 style="margin-top: 50px;">Rental Inventory</h2>
+    <div class="card" style="padding: 0;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Images</th>
+                    <th>Title</th>
+                    <th>Location</th>
+                    <th>Address</th>
+                    <th>Rooms</th>
+                    <th>Price</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="rentalInventoryList"></tbody>
+        </table>
+    </div>
+</main>
+
+<!-- Orders Tab (Hidden by default) -->
+<main id="ordersMain" style="display: none;">
+    <h2>Customer Orders from WhatsApp</h2>
+    <div id="ordersList" style="margin-top: 20px;"></div>
 </main>
 
 <script>
-    let products = JSON.parse(localStorage.getItem("products")) || [];
+    // simple password protection via login box
+    const BACKOFFICE_PASSWORD = 'admin123';
+    function checkBackofficePassword(){
+        const val=document.getElementById('loginInput').value;
+        if(val===BACKOFFICE_PASSWORD){
+            document.getElementById('loginOverlay').style.display='none';
+        } else {
+            alert('Incorrect password');
+        }
+    }
+    let products = [];
+    const API_URL = 'http://localhost:3000/api';
+
+    // reuse the same address list used in the storefront so we can assign rental addresses
+    const addressList = [
+        "Busanza Village, Busanza, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Kabeza Village, Kabeza, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Rubirizi Village, Rubirizi, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Gatenga I, Gatenga, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Karambo Village, Karambo, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Nyanza Village, Nyanza, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Kanserege Village, Kanserege, Gikondo, Kicukiro, Kigali, Rwanda",
+        "Kinunga Village, Kinunga, Gikondo, Kicukiro, Kigali, Rwanda",
+        "Rwabutenge Village, Rwabutenge, Gikondo, Kicukiro, Kigali, Rwanda",
+        "Muyange Village, Muyange, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Rukatsa Village, Rukatsa, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Ngoma Village, Ngoma, Kicukiro, Kicukiro, Kigali, Rwanda",
+        "Karugira Village, Karugira, Kigarama, Kicukiro, Kigali, Rwanda",
+        "Ayabaraya Village, Ayabaraya, Masaka, Kicukiro, Kigali, Rwanda",
+        "Gako Village, Gako, Masaka, Kicukiro, Kigali, Rwanda",
+        "Mbabe Village, Mbabe, Masaka, Kicukiro, Kigali, Rwanda",
+        "Niboye Village, Niboye, Niboye, Kicukiro, Kigali, Rwanda",
+        "Kamashashi Village, Kamashashi, Nyarugunga, Kicukiro, Kigali, Rwanda",
+        "Nonko Village, Nonko, Nyarugunga, Kicukiro, Kigali, Rwanda",
+        "Rwimbogo Village, Rwimbogo, Nyarugunga, Kicukiro, Kigali, Rwanda",
+        "Rugando, Rugando, Kimihurura, Gasabo, Kigali, Rwanda",
+        "Kamukina, Kamukina, Kimihurura, Gasabo, Kigali, Rwanda",
+        "Bibare, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Kibagabaga, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Gacuriro, Gacuriro, Kinyinya, Gasabo, Kigali, Rwanda",
+        "Kagugu, Kagugu, Kinyinya, Gasabo, Kigali, Rwanda",
+        "Nyarutarama, Nyarutarama, Remera, Gasabo, Kigali, Rwanda",
+        "Gisimenti, Gisimenti, Remera, Gasabo, Kigali, Rwanda",
+        "Kabuga I, Kabuga I, Rusororo, Gasabo, Kigali, Rwanda",
+        "Nyagahinga, Kabuga II, Rusororo, Gasabo, Kigali, Rwanda",
+        "Musave, Musave, Bumbogo, Gasabo, Kigali, Rwanda",
+        "Kinyaga, Kinyaga, Bumbogo, Gasabo, Kigali, Rwanda",
+        "Karuruma, Karuruma, Gatsata, Gasabo, Kigali, Rwanda",
+        "Nyamabuye, Nyamabuye, Gatsata, Gasabo, Kigali, Rwanda",
+        "Gasagara, Gasagara, Gikomero, Gasabo, Kigali, Rwanda",
+        "Kibara, Kibara, Gikomero, Gasabo, Kigali, Rwanda",
+        "Musezero, Musezero, Gisozi, Gasabo, Kigali, Rwanda",
+        "Akamatamu, Akamatamu, Jabana, Gasabo, Kigali, Rwanda",
+        "Buhiza, Buhiza, Jali, Gasabo, Kigali, Rwanda",
+        "Bwiza, Bwiza, Ndera, Gasabo, Kigali, Rwanda",
+        "Cyivugiza I, Cyivugiza, Nyamirambo, Nyarugenge, Kigali, Rwanda",
+        "Cyivugiza II, Cyivugiza, Nyamirambo, Nyarugenge, Kigali, Rwanda",
+        "Gasharu A, Gasharu, Nyamirambo, Nyarugenge, Kigali, Rwanda",
+        "Gasharu B, Gasharu, Nyamirambo, Nyarugenge, Kigali, Rwanda",
+        "Mumena I, Mumena, Nyamirambo, Nyarugenge, Kigali, Rwanda",
+        "Mumena II, Mumena, Nyamirambo, Nyarugenge, Kigali, Rwanda",
+        "Nyabugogo I, Nyabugogo, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Nyabugogo II, Nyabugogo, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Amahoro, Muhima, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Kabeza, Muhima, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Biryogo I, Biryogo, Nyarugenge, Nyarugenge, Kigali, Rwanda",
+        "Kiyovu I, Kiyovu, Nyarugenge, Nyarugenge, Kigali, Rwanda",
+        "Rwampara I, Rwampara, Nyarugenge, Nyarugenge, Kigali, Rwanda",
+        "Akabahizi, Akabahizi, Gitega, Nyarugenge, Kigali, Rwanda",
+        "Gacyamo, Gacyamo, Gitega, Nyarugenge, Kigali, Rwanda",
+        "Kigarama, Kigarama, Gitega, Nyarugenge, Kigali, Rwanda",
+        "Kamuhoza A, Kamuhoza, Kimisagara, Nyarugenge, Kigali, Rwanda",
+        "Kamuhoza B, Kamuhoza, Kimisagara, Nyarugenge, Kigali, Rwanda",
+        "Katabaro, Katabaro, Kimisagara, Nyarugenge, Kigali, Rwanda",
+        "Kimisagara, Kimisagara, Kimisagara, Nyarugenge, Kigali, Rwanda",
+        "Kavumu, Kavumu, Mageragere, Nyarugenge, Kigali, Rwanda",
+        "Kankuba, Kankuba, Mageragere, Nyarugenge, Kigali, Rwanda",
+        "Mataba, Mataba, Mageragere, Nyarugenge, Kigali, Rwanda",
+        "Nzove, Nzove, Kanyinya, Nyarugenge, Kigali, Rwanda",
+        "Nyamweru, Nyamweru, Kanyinya, Nyarugenge, Kigali, Rwanda",
+        "Taba, Taba, Kanyinya, Nyarugenge, Kigali, Rwanda"
+    ];
+
+    function populateAddressSelects() {
+        [
+            document.getElementById('rAddress'),
+            document.getElementById('rAddress2')
+        ].forEach(sel => {
+            if(sel) {
+                sel.innerHTML = '<option value="">-- select address --</option>';
+                addressList.forEach(addr => {
+                    const opt = document.createElement('option');
+                    opt.value = addr;
+                    opt.text = addr;
+                    sel.appendChild(opt);
+                });
+            }
+        });
+    }
+
+    function switchTab(tab) {
+        const inventoryMain = document.querySelector('main:not(#ordersMain)');
+        const ordersMain = document.getElementById('ordersMain');
+        
+        if(tab === 'inventory') {
+            inventoryMain.style.display = 'block';
+            ordersMain.style.display = 'none';
+        } else {
+            inventoryMain.style.display = 'none';
+            ordersMain.style.display = 'block';
+            renderOrders();
+        }
+        
+        document.querySelectorAll('.nav-link').forEach((link, i) => {
+            if((i === 0 && tab === 'inventory') || (i === 1 && tab === 'orders')) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+    }
+
+    function renderOrders() {
+        const container = document.getElementById('ordersList');
+        fetch(`${API_URL}/orders`)
+            .then(res => res.json())
+            .then(orders => {
+                if(orders.length === 0) {
+                    container.innerHTML = '<div class="card"><p style="color: #94a3b8; text-align: center;">No orders yet</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = orders.slice().reverse().map(order => `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <div>
+                                <div class="order-id">Order #${order._id}</div>
+                                <small style="color: #64748b;">${order.date}</small>
+                            </div>
+                            <span class="order-status ${order.status === 'Confirmed' ? 'status-confirmed' : 'status-pending'}">${order.status}</span>
+                        </div>
+                        <div>
+                            <p style="font-weight: 600; margin-bottom: 10px;">Delivery Address: ${order.address || 'N/A'}</p>
+                            <p style="font-weight: 600; margin-bottom: 10px;">Items: ${order.items.map(i => `${i.name} (${i.chosenSize}) x${i.quantity}`).join(", ")}</p>
+                            <p style="font-weight: 700; color: var(--primary); margin: 10px 0;">Total: ${Number(order.total).toLocaleString()} RWF</p>
+                            ${order.status === 'Pending' ? `<button class="btn-confirm" onclick="confirmOrder('${order._id}')">✓ Confirm Order</button>` : '<p style="color: var(--success);">✓ Order Confirmed</p>'}
+                        </div>
+                    </div>
+                `).join("");
+            })
+            .catch(err => console.error('Error fetching orders:', err));
+    }
+
+    function confirmOrder(id) {
+        fetch(`${API_URL}/orders/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'Confirmed' })
+        }).then(res => res.json())
+        .then(() => {
+            renderOrders();
+            alert("Order confirmed!");
+        })
+        .catch(err => console.error('Error confirming order:', err));
+    }
 
     const fileToBase64 = file => new Promise((resolve) => {
-        if(!file) resolve("https://via.placeholder.com/300"); // Fallback for missing imgs
+        if(!file) resolve("https://via.placeholder.com/300");
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => resolve(reader.result);
     });
 
+    function toggleListingFields() {
+        const type = document.getElementById('listingType').value;
+        document.getElementById('productFields').style.display = type === 'product' ? 'block' : 'none';
+        document.getElementById('rentalFields').style.display = type === 'rental' ? 'block' : 'none';
+    }
+
     async function handleSave() {
-        const name = document.getElementById("pName").value;
-        const price = document.getElementById("pPrice").value;
-        const cat = document.getElementById("pCategory").value;
-        const sizesString = document.getElementById("pSizes").value;
-        
-        const f1 = document.getElementById("img1").files[0];
-        const f2 = document.getElementById("img2").files[0];
-        const f3 = document.getElementById("img3").files[0];
+        const type = document.getElementById('listingType').value;
+        if(type === 'product') {
+            const name = document.getElementById("pName").value;
+            const price = document.getElementById("pPrice").value;
+            const cat = document.getElementById("pCategory").value;
+            const sizesString = document.getElementById("pSizes").value;
+            const f1 = document.getElementById("img1").files[0];
+            const f2 = document.getElementById("img2").files[0];
+            const f3 = document.getElementById("img3").files[0];
 
-        if(!name || !price || !f1) {
-            alert("At minimum, Name, Price, and Main Image are required.");
-            return;
+            if(!name || !price || !f1) {
+                alert("At minimum, Name, Price, and Main Image are required.");
+                return;
+            }
+            const imgUrls = [
+                await fileToBase64(f1),
+                await fileToBase64(f2),
+                await fileToBase64(f3)
+            ].filter(url => url !== null);
+            const newProduct = {
+                name: name,
+                price: Number(price),
+                category: cat,
+                variants: sizesString.split(",").map(s => s.trim()),
+                imgs: imgUrls
+            };
+            try {
+                await fetch(`${API_URL}/products`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newProduct)
+                });
+                ["pName", "pPrice", "pSizes"].forEach(id => document.getElementById(id).value = "");
+                ["img1", "img2", "img3"].forEach(id => document.getElementById(id).value = "");
+                renderInventory();
+                alert("Product added successfully!");
+            } catch (err) {
+                console.error('Error saving product:', err);
+                alert('Error saving product');
+            }
+        } else {
+            const title = document.getElementById("rTitle").value;
+            const location = document.getElementById("rLocation").value;
+            const address = document.getElementById("rAddress").value;
+            const price = document.getElementById("rPrice").value;
+            const rooms = document.getElementById("rRooms").value;
+            const f1 = document.getElementById("rimg1").files[0];
+            const f2 = document.getElementById("rimg2").files[0];
+            const f3 = document.getElementById("rimg3").files[0];
+
+            if(!title || !location || !address || !price || !rooms || !f1) {
+                alert("Please fill title, location, address, price, rooms and main photo.");
+                return;
+            }
+            const photos = await Promise.all([fileToBase64(f1), fileToBase64(f2), fileToBase64(f3)]).then(urls=>urls.filter(u=>u));
+            const rentalObj = { title, location, address, price: Number(price), rooms: Number(rooms), photos };
+            try {
+                await fetch(`${API_URL}/rentals`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(rentalObj)
+                });
+                ["rTitle","rLocation","rAddress","rPrice","rRooms"].forEach(id=>document.getElementById(id).value="");
+                ["rimg1","rimg2","rimg3"].forEach(id=>document.getElementById(id).value="");
+                renderRentalsInventory();
+                alert('Rental saved');
+            } catch(err) {
+                console.error('Error saving rental:', err);
+            }
         }
-
-        const imgUrls = [
-            await fileToBase64(f1),
-            await fileToBase64(f2),
-            await fileToBase64(f3)
-        ].filter(url => url !== null);
-
-        const newProduct = {
-            id: Date.now(),
-            name: name,
-            price: price,
-            category: cat, // Match storefront key
-            variants: sizesString.split(",").map(s => s.trim()), // Match storefront key "variants"
-            imgs: imgUrls
-        };
-
-        products.push(newProduct); 
-        localStorage.setItem("products", JSON.stringify(products));
-        
-        // Clear Form
-        ["pName", "pPrice", "pSizes"].forEach(id => document.getElementById(id).value = "");
-        ["img1", "img2", "img3"].forEach(id => document.getElementById(id).value = "");
-
-        renderInventory();
-        alert("Product added successfully!");
     }
 
     function deleteProduct(id) {
         if(confirm("Remove this item?")) {
-            products = products.filter(p => p.id !== id);
-            localStorage.setItem("products", JSON.stringify(products));
-            renderInventory();
+            fetch(`${API_URL}/products/${id}`, {
+                method: 'DELETE'
+            }).then(res => res.json())
+            .then(() => {
+                renderInventory();
+            })
+            .catch(err => console.error('Error deleting product:', err));
         }
     }
 
     function renderInventory() {
         const list = document.getElementById("inventoryList");
-        list.innerHTML = products.slice().reverse().map(p => `
-            <tr>
-                <td><img src="${p.imgs[0]}" class="thumb"></td>
-                <td>
-                    <b>${p.name}</b><br>
-                    <small>${p.variants.join(", ")}</small>
-                </td>
-                <td><span style="font-size:12px; background:#e2e8f0; padding:2px 8px; border-radius:4px">${p.category}</span></td>
-                <td><b>${Number(p.price).toLocaleString()} RWF</b></td>
-                <td><button class="btn-del" onclick="deleteProduct(${p.id})">Delete</button></td>
-            </tr>
-        `).join("");
+        fetch(`${API_URL}/products`)
+            .then(res => res.json())
+            .then(productsData => {
+                list.innerHTML = productsData.slice().reverse().map(p => `
+                    <tr>
+                        <td><img src="${p.imgs[0]}" class="thumb"></td>
+                        <td>
+                            <b>${p.name}</b><br>
+                            <small>${p.variants.join(", ")}</small>
+                        </td>
+                        <td><span style="font-size:12px; background:#e2e8f0; padding:2px 8px; border-radius:4px">${p.category}</span></td>
+                        <td><b>${Number(p.price).toLocaleString()} RWF</b></td>
+                        <td><button class="btn-del" onclick="deleteProduct('${p._id}')">Delete</button></td>
+                    </tr>
+                `).join("");
+            })
+            .catch(err => console.error('Error fetching products:', err));
+    }
+
+    function handleRentalSave() {
+        const title = document.getElementById("rTitle").value;
+        const location = document.getElementById("rLocation").value;
+        const address = document.getElementById("rAddress").value;
+        const price = document.getElementById("rPrice").value;
+        const rooms = document.getElementById("rRooms").value;
+        const f1 = document.getElementById("rimg1").files[0];
+        const f2 = document.getElementById("rimg2").files[0];
+        const f3 = document.getElementById("rimg3").files[0];
+
+        if(!title || !location || !address || !price || !rooms || !f1) {
+            alert("Please fill title, location, address, price, rooms and main photo.");
+            return;
+        }
+
+        Promise.all([fileToBase64(f1), fileToBase64(f2), fileToBase64(f3)])
+            .then(urls => urls.filter(u => u))
+            .then(photos => {
+                const rentalObj = { title, location, address, price: Number(price), rooms: Number(rooms), photos };
+                return fetch(`${API_URL}/rentals`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(rentalObj)
+                });
+            })
+            .then(res => res.json())
+            .then(() => {
+                ["rTitle","rLocation","rAddress","rPrice","rRooms"].forEach(id=>document.getElementById(id).value="");
+                ["rimg1","rimg2","rimg3"].forEach(id=>document.getElementById(id).value="");
+                renderRentalsInventory();
+                alert('Rental saved');
+            })
+            .catch(err => console.error('Error saving rental:', err));
+    }
+
+    function deleteRental(id) {
+        if(confirm('Remove this rental?')) {
+            fetch(`${API_URL}/rentals/${id}`, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(() => renderRentalsInventory())
+                .catch(err => console.error('Error deleting rental:', err));
+        }
+    }
+
+    function renderRentalsInventory() {
+        const list = document.getElementById("rentalInventoryList");
+        fetch(`${API_URL}/rentals`)
+            .then(res => res.json())
+            .then(data => {
+                list.innerHTML = data.slice().reverse().map(r => `
+                    <tr>
+                        <td><img src="${r.photos[0]||''}" class="thumb"></td>
+                        <td>${r.title}</td>
+                        <td>${r.location}</td>
+                        <td>${r.address||''}</td>
+                        <td>${r.rooms}</td>
+                        <td>${Number(r.price).toLocaleString()} RWF</td>
+                        <td><button class="btn-del" onclick="deleteRental('${r._id}')">Delete</button></td>
+                    </tr>
+                `).join("");
+            })
+            .catch(err => console.error('Error fetching rentals:', err));
     }
 
     renderInventory();
+    renderRentalsInventory();
+    populateAddressSelects();
+    // initialize form toggle
+    toggleListingFields();
 </script>
 
 </body>

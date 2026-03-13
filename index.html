@@ -64,6 +64,7 @@
 <div class="container-wide">
     <div class="nav-tabs">
         <button onclick="showPage('shopPage')">Shop</button>
+        <button onclick="showPage('rentalsPage')">Rentals</button>
         <button onclick="showPage('ordersPage')">My Orders</button>
     </div>
 
@@ -71,10 +72,63 @@
         <div id="productList" class="products-grid"></div>
     </div>
 
+    <div id="rentalsPage" class="page">
+        <h2 class="text-2xl font-bold mb-4">Rentals in Kigali</h2>
+        <div class="mb-4">
+            <label class="mr-2 font-semibold">Filter by location:</label>
+            <select id="rentalLocationFilter" onchange="renderRentals()">
+                <option value="All">All</option>
+            </select>
+        </div>
+        <div id="rentalList" class="products-grid"></div>
+    </div>
+
     <div id="cartPage" class="page">
         <div class="max-w-xl mx-auto bg-white p-6 rounded-2xl shadow-sm border">
             <h2 class="text-2xl font-bold mb-6">Your Cart</h2>
             <div id="cartItems" class="space-y-4 mb-6"></div>
+            <div class="mb-4">
+                <label class="font-semibold">Delivery Address</label>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-sm text-slate-600">Country</label>
+                        <select id="countrySelect" class="w-full p-2 bg-slate-50 rounded-md border ring-1 ring-slate-200" onchange="onCountryChange()">
+                            <option value="">-- select country --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-sm text-slate-600">City (Umujyi)</label>
+                        <select id="citySelect" class="w-full p-2 bg-slate-50 rounded-md border ring-1 ring-slate-200" onchange="onCityChange()" disabled>
+                            <option value="">-- select city --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-sm text-slate-600">District (Akarere)</label>
+                        <select id="districtSelect" class="w-full p-2 bg-slate-50 rounded-md border ring-1 ring-slate-200" onchange="onDistrictChange()" disabled>
+                            <option value="">-- select district --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-sm text-slate-600">Sector (Umurenge)</label>
+                        <select id="sectorSelect" class="w-full p-2 bg-slate-50 rounded-md border ring-1 ring-slate-200" onchange="onSectorChange()" disabled>
+                            <option value="">-- select sector --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-sm text-slate-600">Cell (Akagari)</label>
+                        <select id="cellSelect" class="w-full p-2 bg-slate-50 rounded-md border ring-1 ring-slate-200" onchange="onCellChange()" disabled>
+                            <option value="">-- select cell --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-sm text-slate-600">Village (Umudugudu)</label>
+                        <select id="villageSelect" class="w-full p-2 bg-slate-50 rounded-md border ring-1 ring-slate-200" onchange="onVillageChange()" disabled>
+                            <option value="">-- select village --</option>
+                        </select>
+                    </div>
+                    <input type="hidden" id="addressSelect">
+                </div>
+            </div>
             <div class="flex justify-between items-center text-xl font-bold border-t pt-4">
                 <span>Total:</span>
                 <span class="text-blue-600"><span id="total">0</span> RWF</span>
@@ -92,9 +146,454 @@
 </div>
 
 <script>
-    let products = JSON.parse(localStorage.getItem("products")) || [];
+    let products = [];
     let cart = [];
     let currentCategory = "All";
+    const API_URL = 'http://localhost:3000/api';
+
+    const addressList = [
+        // Kicukiro District - Gahanga Sector
+        "Gatovu, Gahanga, Gahanga, Kicukiro, Kigali, Rwanda",
+        "Ubumwe, Gahanga, Gahanga, Kicukiro, Kigali, Rwanda",
+        "Gatare, Gahanga, Gahanga, Kicukiro, Kigali, Rwanda",
+        "Gahanga, Gahanga, Gahanga, Kicukiro, Kigali, Rwanda",
+        "Linini, Gahanga, Gahanga, Kicukiro, Kigali, Rwanda",
+        "Rwinanka, Gahanga, Gahanga, Kicukiro, Kigali, Rwanda",
+        "Karembure, Karembure, Gahanga, Kicukiro, Kigali, Rwanda",
+        "Amahoro, Karembure, Gahanga, Kicukiro, Kigali, Rwanda",
+        "Mubuga, Karembure, Gahanga, Kicukiro, Kigali, Rwanda",
+        "Rwamaya, Karembure, Gahanga, Kicukiro, Kigali, Rwanda",
+        "Kamuyinga, Karembure, Gahanga, Kicukiro, Kigali, Rwanda",
+        "Bigo, Karembure, Gahanga, Kicukiro, Kigali, Rwanda",
+        "Kimena, Karembure, Gahanga, Kicukiro, Kigali, Rwanda",
+        "Kabeza, Karembure, Gahanga, Kicukiro, Kigali, Rwanda",
+        // Kicukiro District - Gatenga Sector
+        "Rugwiro, Karambo, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Sangwa, Karambo, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Mahoro, Karambo, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Ruhuka, Karambo, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Ramiro, Karambo, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Gwiza, Karambo, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Kaburamire, Karambo, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Rebero, Karambo, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Jyambere, Karambo, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Gatenga, Gatenga, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Ihuriro, Gatenga, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Amahoro, Gatenga, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Isangano, Gatenga, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Rugari, Gatenga, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Gakoki, Gatenga, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Kabeza, Nyarurama, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Bisambu, Nyarurama, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Bigo, Nyarurama, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Nyabikenke, Nyarurama, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Cyeza, Nyanza, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Taba, Nyanza, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Bwiza, Nyanza, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Gasabo, Nyanza, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Nyanza, Nyanza, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Marembo, Nyanza, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Isonga, Nyanza, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Juru, Nyanza, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Sabaganga, Nyanza, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Murambi, Nyanza, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Ihuriro, Nyanza, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Rusororo, Nyanza, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Irebero, Nyanza, Gatenga, Kicukiro, Kigali, Rwanda",
+        "Taba, Rukatsa, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Rukatsa, Rukatsa, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Inshuti, Rukatsa, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Mpinga ya Nyanza, Rukatsa, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Nyanza, Rukatsa, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Nyacyonga, Rukatsa, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Rugunga, Muyange, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Muyange, Muyange, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Mugeyo, Muyange, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Kamuna, Muyange, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Kinunga, Kanserege, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Bwiza, Kanserege, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Kanserege, Kanserege, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Byimana, Kanserege, Kagarama, Kicukiro, Kigali, Rwanda",
+        "Ituze, Kanserege, Kagarama, Kicukiro, Kigali, Rwanda",
+        // Kicukiro District - Nyarugunga Sector
+        "Akindege, Kamashashi, Nyarugunga, Kicukiro, Kigali, Rwanda",
+        "Indatwa, Kamashashi, Nyarugunga, Kicukiro, Kigali, Rwanda",
+        "Intwari, Kamashashi, Nyarugunga, Kicukiro, Kigali, Rwanda",
+        "Kabagendwa, Kamashashi, Nyarugunga, Kicukiro, Kigali, Rwanda",
+        "Kibaya, Kamashashi, Nyarugunga, Kicukiro, Kigali, Rwanda",
+        "Mukoni, Kamashashi, Nyarugunga, Kicukiro, Kigali, Rwanda",
+        "Mulindi, Kamashashi, Nyarugunga, Kicukiro, Kigali, Rwanda",
+        "Umucyo, Kamashashi, Nyarugunga, Kicukiro, Kigali, Rwanda",
+        "Uruhongore, Kamashashi, Nyarugunga, Kicukiro, Kigali, Rwanda",
+        "Gashyushya, Busanza, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Antene, Busanza, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Amahoro, Busanza, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Bamporeze 1, Busanza, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Bamporeze 2, Busanza, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Hope, Busanza, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Radari, Busanza, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Gishikiri, Busanza, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Ruvili, Busanza, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Rukore, Busanza, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Hangari, Rubirizi, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Kiziba, Rubirizi, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Itunda, Rubirizi, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Cyeru, Rubirizi, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Abakunzi, Rubirizi, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Kuwabarezi, Rubirizi, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Kumunara, Rubirizi, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Beninganda, Rubirizi, Kanombe, Kicukiro, Kigali, Rwanda",
+        "Murwiri, Rubirizi, Kanombe, Kicukiro, Kigali, Rwanda",
+        // Gasabo District - Remera Sector
+        "Gishushu, Nyarutarama, Remera, Gasabo, Kigali, Rwanda",
+        "Kamahwa, Nyarutarama, Remera, Gasabo, Kigali, Rwanda",
+        "Nyarutarama, Nyarutarama, Remera, Gasabo, Kigali, Rwanda",
+        "Juru, Nyarutarama, Remera, Gasabo, Kigali, Rwanda",
+        "Kangondo 1, Nyarutarama, Remera, Gasabo, Kigali, Rwanda",
+        "Kangondo 2, Nyarutarama, Remera, Gasabo, Kigali, Rwanda",
+        "Cyibiraro 1, Nyarutarama, Remera, Gasabo, Kigali, Rwanda",
+        "Cyibiraro 2, Nyarutarama, Remera, Gasabo, Kigali, Rwanda",
+        "Zuba, Rukiri I, Remera, Gasabo, Kigali, Rwanda",
+        "Rumuri, Rukiri I, Remera, Gasabo, Kigali, Rwanda",
+        "Kwezi, Rukiri I, Remera, Gasabo, Kigali, Rwanda",
+        "Ubumwe, Rukiri I, Remera, Gasabo, Kigali, Rwanda",
+        "Amajyambere, Rukiri I, Remera, Gasabo, Kigali, Rwanda",
+        "Gisimenti, Rukiri I, Remera, Gasabo, Kigali, Rwanda",
+        "Gashyitsi, Rukiri I, Remera, Gasabo, Kigali, Rwanda",
+        "Amahoro, Rukiri II, Remera, Gasabo, Kigali, Rwanda",
+        "Rebero, Rukiri II, Remera, Gasabo, Kigali, Rwanda",
+        "Ruturusu 1, Rukiri II, Remera, Gasabo, Kigali, Rwanda",
+        "Ruturusu 2, Rukiri II, Remera, Gasabo, Kigali, Rwanda",
+        "Ubumwe, Rukiri II, Remera, Gasabo, Kigali, Rwanda",
+        "Kinunga, Nyabisindu, Remera, Gasabo, Kigali, Rwanda",
+        "Rugarama, Nyabisindu, Remera, Gasabo, Kigali, Rwanda",
+        "Gihogere, Nyabisindu, Remera, Gasabo, Kigali, Rwanda",
+        "Kagara, Nyabisindu, Remera, Gasabo, Kigali, Rwanda",
+        "Amarembo 1, Nyabisindu, Remera, Gasabo, Kigali, Rwanda",
+        "Amarembo 2, Nyabisindu, Remera, Gasabo, Kigali, Rwanda",
+        "Nyabisindu, Nyabisindu, Remera, Gasabo, Kigali, Rwanda",
+        // Gasabo District - Kimironko Sector
+        "Kalisimbi, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Muhabura, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Gabiro, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Butanyerera, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Nyirabwana, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Karongi, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Nyamagumba, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Rumuri, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Huye, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Rugero, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Humure, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Kanyenkiko, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Gasharu, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Gahinga, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Bugarura, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Buranga, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Muhazi, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Muhura, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Kangarama, Kibagabaga, Kimironko, Gasabo, Kigali, Rwanda",
+        "Inganji, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Imitari, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Intashyo, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Inshuti, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Kabeza, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Intwali, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Inyamibwa, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Ingenzi, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Ingeri, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Imanzi, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Bwiza, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Umwezi, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Inyange, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Amariza, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Imena, Bibare, Kimironko, Gasabo, Kigali, Rwanda",
+        "Itetero, Nyagatovu, Kimironko, Gasabo, Kigali, Rwanda",
+        "Ijabiro, Nyagatovu, Kimironko, Gasabo, Kigali, Rwanda",
+        "Isangano, Nyagatovu, Kimironko, Gasabo, Kigali, Rwanda",
+        "Ibukinanyana, Nyagatovu, Kimironko, Gasabo, Kigali, Rwanda",
+        "Urugwiro, Nyagatovu, Kimironko, Gasabo, Kigali, Rwanda",
+        "Ibuhoro, Nyagatovu, Kimironko, Gasabo, Kigali, Rwanda",
+        // Nyarugenge District
+        "Indatwa, Kabasengerezi, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Abeza, Kabasengerezi, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Rwezangoro, Kabasengerezi, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Poids Lourd, Kabasengerezi, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Umutekano, Kabasengerezi, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Ubucuruzi, Kabasengerezi, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Ubuzima, Icyeza, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Yamaha, Icyeza, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Kabahizi, Icyeza, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Minitrape, Icyeza, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Amizero, Icyeza, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Amahoro, Icyeza, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Ubumanzi, Intwari, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Tetero, Intwari, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Indatwa, Intwari, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Iwacu, Intwari, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Ingoro, Intwari, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Inkingi, Intwari, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Apacope, Kabeza, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Hirwa, Kabeza, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Imanzi, Kabeza, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Sangwa, Kabeza, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Ituze, Kabeza, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Umwezi, Kabeza, Muhima, Nyarugenge, Kigali, Rwanda",
+        "Ikaze, Kabeza, Muhima, Nyarugenge, Kigali, Rwanda"
+    ];
+
+    // Build hierarchical data structure from addressList
+    let addressData = {};
+    
+    function buildAddressStructure() {
+        addressList.forEach(addr => {
+            const parts = addr.split(', ');
+            const village = parts[0];     // parts[0]
+            const cell = parts[1];        // parts[1]
+            const sector = parts[2];      // parts[2]
+            const district = parts[3];    // parts[3]
+            const city = parts[4];        // parts[4]
+            const country = parts[5];     // parts[5]
+            
+            // Build nested structure: country > city > district > sector > cell > villages
+            if (!addressData[country]) {
+                addressData[country] = {};
+            }
+            if (!addressData[country][city]) {
+                addressData[country][city] = {};
+            }
+            if (!addressData[country][city][district]) {
+                addressData[country][city][district] = {};
+            }
+            if (!addressData[country][city][district][sector]) {
+                addressData[country][city][district][sector] = {};
+            }
+            if (!addressData[country][city][district][sector][cell]) {
+                addressData[country][city][district][sector][cell] = [];
+            }
+            if (!addressData[country][city][district][sector][cell].includes(village)) {
+                addressData[country][city][district][sector][cell].push(village);
+            }
+        });
+    }
+
+    function populateAddressOptions() {
+        buildAddressStructure();
+        const countrySelect = document.getElementById('countrySelect');
+        const countries = Object.keys(addressData).sort();
+        
+        countries.forEach(country => {
+            const opt = document.createElement('option');
+            opt.value = country;
+            opt.text = country;
+            countrySelect.appendChild(opt);
+        });
+    }
+
+    function onCountryChange() {
+        const countrySelect = document.getElementById('countrySelect');
+        const citySelect = document.getElementById('citySelect');
+        const districtSelect = document.getElementById('districtSelect');
+        const sectorSelect = document.getElementById('sectorSelect');
+        const cellSelect = document.getElementById('cellSelect');
+        const villageSelect = document.getElementById('villageSelect');
+        
+        const selectedCountry = countrySelect.value;
+        
+        // Reset all dependent dropdowns
+        citySelect.innerHTML = '<option value="">-- select city --</option>';
+        districtSelect.innerHTML = '<option value="">-- select district --</option>';
+        sectorSelect.innerHTML = '<option value="">-- select sector --</option>';
+        cellSelect.innerHTML = '<option value="">-- select cell --</option>';
+        villageSelect.innerHTML = '<option value="">-- select village --</option>';
+        
+        citySelect.disabled = true;
+        districtSelect.disabled = true;
+        sectorSelect.disabled = true;
+        cellSelect.disabled = true;
+        villageSelect.disabled = true;
+        document.getElementById('addressSelect').value = '';
+        
+        if (selectedCountry && addressData[selectedCountry]) {
+            const cities = Object.keys(addressData[selectedCountry]).sort();
+            cities.forEach(city => {
+                const opt = document.createElement('option');
+                opt.value = city;
+                opt.text = city;
+                citySelect.appendChild(opt);
+            });
+            citySelect.disabled = false;
+        }
+    }
+
+    function onCityChange() {
+        const countrySelect = document.getElementById('countrySelect');
+        const citySelect = document.getElementById('citySelect');
+        const districtSelect = document.getElementById('districtSelect');
+        const sectorSelect = document.getElementById('sectorSelect');
+        const cellSelect = document.getElementById('cellSelect');
+        const villageSelect = document.getElementById('villageSelect');
+        
+        const selectedCountry = countrySelect.value;
+        const selectedCity = citySelect.value;
+        
+        // Reset dependent dropdowns
+        districtSelect.innerHTML = '<option value="">-- select district --</option>';
+        sectorSelect.innerHTML = '<option value="">-- select sector --</option>';
+        cellSelect.innerHTML = '<option value="">-- select cell --</option>';
+        villageSelect.innerHTML = '<option value="">-- select village --</option>';
+        
+        districtSelect.disabled = true;
+        sectorSelect.disabled = true;
+        cellSelect.disabled = true;
+        villageSelect.disabled = true;
+        document.getElementById('addressSelect').value = '';
+        
+        if (selectedCountry && selectedCity && addressData[selectedCountry][selectedCity]) {
+            const districts = Object.keys(addressData[selectedCountry][selectedCity]).sort();
+            districts.forEach(district => {
+                const opt = document.createElement('option');
+                opt.value = district;
+                opt.text = district;
+                districtSelect.appendChild(opt);
+            });
+            districtSelect.disabled = false;
+        }
+    }
+
+    function onDistrictChange() {
+        const countrySelect = document.getElementById('countrySelect');
+        const citySelect = document.getElementById('citySelect');
+        const districtSelect = document.getElementById('districtSelect');
+        const sectorSelect = document.getElementById('sectorSelect');
+        const cellSelect = document.getElementById('cellSelect');
+        const villageSelect = document.getElementById('villageSelect');
+        
+        const selectedCountry = countrySelect.value;
+        const selectedCity = citySelect.value;
+        const selectedDistrict = districtSelect.value;
+        
+        // Reset dependent dropdowns
+        sectorSelect.innerHTML = '<option value="">-- select sector --</option>';
+        cellSelect.innerHTML = '<option value="">-- select cell --</option>';
+        villageSelect.innerHTML = '<option value="">-- select village --</option>';
+        
+        sectorSelect.disabled = true;
+        cellSelect.disabled = true;
+        villageSelect.disabled = true;
+        document.getElementById('addressSelect').value = '';
+        
+        if (selectedCountry && selectedCity && selectedDistrict && addressData[selectedCountry][selectedCity][selectedDistrict]) {
+            const sectors = Object.keys(addressData[selectedCountry][selectedCity][selectedDistrict]).sort();
+            sectors.forEach(sector => {
+                const opt = document.createElement('option');
+                opt.value = sector;
+                opt.text = sector;
+                sectorSelect.appendChild(opt);
+            });
+            sectorSelect.disabled = false;
+        }
+    }
+
+    function onSectorChange() {
+        const countrySelect = document.getElementById('countrySelect');
+        const citySelect = document.getElementById('citySelect');
+        const districtSelect = document.getElementById('districtSelect');
+        const sectorSelect = document.getElementById('sectorSelect');
+        const cellSelect = document.getElementById('cellSelect');
+        const villageSelect = document.getElementById('villageSelect');
+        
+        const selectedCountry = countrySelect.value;
+        const selectedCity = citySelect.value;
+        const selectedDistrict = districtSelect.value;
+        const selectedSector = sectorSelect.value;
+        
+        // Reset dependent dropdowns
+        cellSelect.innerHTML = '<option value="">-- select cell --</option>';
+        villageSelect.innerHTML = '<option value="">-- select village --</option>';
+        
+        cellSelect.disabled = true;
+        villageSelect.disabled = true;
+        document.getElementById('addressSelect').value = '';
+        
+        if (selectedCountry && selectedCity && selectedDistrict && selectedSector && addressData[selectedCountry][selectedCity][selectedDistrict][selectedSector]) {
+            const cells = Object.keys(addressData[selectedCountry][selectedCity][selectedDistrict][selectedSector]).sort();
+            cells.forEach(cell => {
+                const opt = document.createElement('option');
+                opt.value = cell;
+                opt.text = cell;
+                cellSelect.appendChild(opt);
+            });
+            cellSelect.disabled = false;
+        }
+    }
+
+    function onCellChange() {
+        const countrySelect = document.getElementById('countrySelect');
+        const citySelect = document.getElementById('citySelect');
+        const districtSelect = document.getElementById('districtSelect');
+        const sectorSelect = document.getElementById('sectorSelect');
+        const cellSelect = document.getElementById('cellSelect');
+        const villageSelect = document.getElementById('villageSelect');
+        
+        const selectedCountry = countrySelect.value;
+        const selectedCity = citySelect.value;
+        const selectedDistrict = districtSelect.value;
+        const selectedSector = sectorSelect.value;
+        const selectedCell = cellSelect.value;
+        
+        // Reset village
+        villageSelect.innerHTML = '<option value="">-- select village --</option>';
+        villageSelect.disabled = true;
+        document.getElementById('addressSelect').value = '';
+        
+        if (selectedCountry && selectedCity && selectedDistrict && selectedSector && selectedCell && addressData[selectedCountry][selectedCity][selectedDistrict][selectedSector][selectedCell]) {
+            const villages = addressData[selectedCountry][selectedCity][selectedDistrict][selectedSector][selectedCell].sort();
+            villages.forEach(village => {
+                const opt = document.createElement('option');
+                opt.value = village;
+                opt.text = village;
+                villageSelect.appendChild(opt);
+            });
+            villageSelect.disabled = false;
+        }
+    }
+
+    function onVillageChange() {
+        const countrySelect = document.getElementById('countrySelect');
+        const citySelect = document.getElementById('citySelect');
+        const districtSelect = document.getElementById('districtSelect');
+        const sectorSelect = document.getElementById('sectorSelect');
+        const cellSelect = document.getElementById('cellSelect');
+        const villageSelect = document.getElementById('villageSelect');
+        
+        const village = villageSelect.value;
+        const cell = cellSelect.value;
+        const sector = sectorSelect.value;
+        const district = districtSelect.value;
+        const city = citySelect.value;
+        const country = countrySelect.value;
+        
+        if (village && cell && sector && district && city && country) {
+            // Construct the full address in the same format
+            const fullAddress = `${village}, ${cell}, ${sector}, ${district}, ${city}, ${country}`;
+            document.getElementById('addressSelect').value = fullAddress;
+        } else {
+            document.getElementById('addressSelect').value = '';
+        }
+    }
+
+
+    // Load products from API
+    async function loadProducts() {
+        try {
+            const response = await fetch(`${API_URL}/products`);
+            products = await response.json();
+            renderProducts();
+        } catch (err) {
+            console.error('Error loading products:', err);
+            alert('Could not connect to server. Make sure server is running on port 3000');
+        }
+    }
 
     function showPage(p) {
         document.querySelectorAll(".page").forEach(x => x.style.display = "none");
@@ -102,6 +601,24 @@
         if(p === 'shopPage') renderProducts();
         if(p === 'cartPage') renderCart();
         if(p === 'ordersPage') renderOrders();
+        if(p === 'rentalsPage') renderRentals();
+    }
+
+    // Handle product link from WhatsApp
+    function handleProductLink() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('productId');
+        if(productId !== null) {
+            showPage('shopPage');
+            setTimeout(() => {
+                const productElement = document.getElementById(`product-${productId}`);
+                if(productElement) {
+                    productElement.scrollIntoView({ behavior: 'smooth' });
+                    productElement.style.border = '3px solid #0966cf';
+                    productElement.style.boxShadow = '0 0 20px rgba(9, 102, 207, 0.5)';
+                }
+            }, 100);
+        }
     }
 
     function filterCat(cat, btn) {
@@ -127,8 +644,9 @@
 
         list.innerHTML = filtered.map((p, i) => {
             const imageList = p.imgs || [];
+            const productId = p.id || products.indexOf(p);
             return `
-                <div class="product-card">
+                <div class="product-card" id="product-${productId}">
                     <img id="mainView${i}" src="${imageList[0]}" class="main-img">
                     <div class="thumb-group">
                         ${imageList.map(img => `<img src="${img}" class="thumb" onclick="document.getElementById('mainView${i}').src='${img}'">`).join('')}
@@ -140,6 +658,10 @@
                             ${p.variants.map(sz => `<option value="${sz}">${sz}</option>`).join('')}
                         </select>
                     </div>
+                    <div class="my-3">
+                        <label class="text-sm font-semibold mb-2">Quantity</label>
+                        <input type="number" id="qtyInput${i}" class="w-full p-2 bg-slate-50 rounded-md border ring-1 ring-slate-200" value="1" min="1">
+                    </div>
                     <button class="buy-btn" onclick="addToCartByObj(${JSON.stringify(p).replace(/"/g, '&quot;')}, ${i})">Add to Cart</button>
                 </div>
             `;
@@ -148,7 +670,17 @@
 
     function addToCartByObj(product, index) {
         const size = document.getElementById(`sizeSelect${index}`).value;
-        cart.push({ name: product.name, price: Number(product.price), chosenSize: size });
+        const qty = parseInt(document.getElementById(`qtyInput${index}`).value) || 1;
+        const img = product.imgs && product.imgs[0] ? product.imgs[0] : '';
+        
+        cart.push({ 
+            id: product.id,
+            name: product.name, 
+            price: Number(product.price), 
+            chosenSize: size,
+            quantity: qty,
+            image: img
+        });
         document.getElementById("cartCount").innerText = cart.length;
         alert("Added to cart!");
     }
@@ -161,53 +693,82 @@
             document.getElementById("total").innerText = 0;
             return;
         }
-        container.innerHTML = cart.map(item => {
-            total += item.price;
+        container.innerHTML = cart.map((item, idx) => {
+            const itemTotal = item.price * item.quantity;
+            total += itemTotal;
             return `<div class="flex justify-between bg-slate-50 p-4 rounded-xl">
-                <div><p class="font-bold">${item.name}</p><p class="text-xs text-slate-500">Size: ${item.chosenSize}</p></div>
-                <span class="font-bold">${item.price.toLocaleString()} RWF</span>
+                <div class="flex gap-3 flex-1">
+                    ${item.image ? `<img src="${item.image}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">` : ''}
+                    <div>
+                        <p class="font-bold">${item.name}</p>
+                        <p class="text-xs text-slate-500">Size: ${item.chosenSize}</p>
+                        <p class="text-sm">Qty: <input type="number" value="${item.quantity}" min="1" onchange="updateQty(${idx}, this.value)" style="width: 40px; padding: 2px; border-radius: 4px; border: 1px solid #cbd5e1;"></p>
+                    </div>
+                </div>
+                <div>
+                    <span class="font-bold">${itemTotal.toLocaleString()} RWF</span>
+                    <button onclick="removeFromCart(${idx})" style="display: block; color: red; margin-top: 5px; cursor: pointer; font-size: 12px;">Remove</button>
+                </div>
             </div>`;
         }).join("");
         document.getElementById("total").innerText = total.toLocaleString();
     }
 
+    function updateQty(index, newQty) {
+        cart[index].quantity = parseInt(newQty) || 1;
+        renderCart();
+    }
+
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        document.getElementById("cartCount").innerText = cart.length;
+        renderCart();
+    }
+
     function checkout() {
         if(cart.length === 0) return;
         const phone = "250784040780";
-        let totalVal = cart.reduce((s, i) => s + i.price, 0);
+        const baseUrl = window.location.origin;
+        let totalVal = cart.reduce((s, i) => s + (i.price * i.quantity), 0);
         
         // WhatsApp Message
-        // 1. Declare the message once with the header
-let msg = `*W&A STORE - NEW ORDER*\n`;
-msg += `--------------------------\n\n`;
+        let msg = `*W&A STORE - NEW ORDER*\n`;
+        msg += `Delivery Address: ${document.getElementById('addressSelect').value || 'Not provided'}\n`;
+        msg += `--------------------------\n\n`;
 
-// 2. Add each item from the cart
-cart.forEach((item, i) => {
-    msg += `${i + 1}. *${item.name}*\n`;
-    msg += `   Size: ${item.chosenSize}\n`;
-    msg += `   Price: ${item.price.toLocaleString()} RWF\n\n`;
-});
+        // Add each item from the cart with image, quantity, name, and price
+        cart.forEach((item, i) => {
+            msg += `${i + 1}. *${item.name}*\n`;
+            msg += `   Quantity: ${item.quantity}\n`;
+            msg += `   Size: ${item.chosenSize}\n`;
+            msg += `   Price per unit: ${item.price.toLocaleString()} RWF\n`;
+            msg += `   Subtotal: ${(item.price * item.quantity).toLocaleString()} RWF\n`;
+            if(item.id) msg += `   🔗 Product Link: ${baseUrl}/?productId=${item.id}\n`;
+            msg += `\n`;
+        });
 
-// 3. Add the footer and total
-msg += `--------------------------\n`;
-msg += `*TOTAL AMOUNT: ${totalVal.toLocaleString()} RWF*\n\n`;
-msg += `_Please confirm my order!_`;
+        // Add the footer and total
+        msg += `--------------------------\n`;
+        msg += `*TOTAL AMOUNT: ${totalVal.toLocaleString()} RWF*\n\n`;
+        msg += `_Please confirm my order!_`;
 
-// 4. Send to WhatsApp
-const finalUrl = `https://wa.me/250784040780?text=${encodeURIComponent(msg)}`;
-window.open(finalUrl, "_blank");
-
-        // Sync with Back Office
-        let orders = JSON.parse(localStorage.getItem("orders")) || [];
-        orders.push({
-            id: Date.now(),
-            items: cart.map(i => `${i.name} (${i.chosenSize})`).join(", "),
+        // Save order to database
+        const orderData = {
+            customer_name: "Customer",
+            address: document.getElementById('addressSelect').value || '',
+            items: cart,
             total: totalVal,
             status: "Pending",
             date: new Date().toLocaleString()
-        });
-        localStorage.setItem("orders", JSON.stringify(orders));
+        };
 
+        fetch(`${API_URL}/orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderData)
+        }).then(res => res.json()).catch(err => console.error('Error saving order:', err));
+
+        // Send to WhatsApp
         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
         cart = [];
         document.getElementById("cartCount").innerText = "0";
@@ -216,20 +777,71 @@ window.open(finalUrl, "_blank");
 
     function renderOrders() {
         const container = document.getElementById("myOrders");
-        const orders = JSON.parse(localStorage.getItem("orders")) || [];
-        container.innerHTML = orders.slice().reverse().map(o => `
-            <div class="bg-white p-5 rounded-2xl shadow-sm border mb-4">
-                <div class="flex justify-between mb-2">
-                    <span class="text-xs text-slate-400">${o.date}</span>
-                    <span class="status-pill pending">${o.status}</span>
-                </div>
-                <p class="font-semibold">${o.items}</p>
-                <p class="mt-2 font-bold text-blue-600">${Number(o.total).toLocaleString()} RWF</p>
-            </div>
-        `).join("");
+        fetch(`${API_URL}/orders`)
+            .then(res => res.json())
+            .then(orders => {
+                container.innerHTML = orders.slice().reverse().map(o => `
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border mb-4">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-xs text-slate-400">${o.date}</span>
+                            <span class="status-pill pending">${o.status}</span>
+                        </div>
+                        <p class="font-semibold">${o.items.map(i => `${i.name} (${i.chosenSize}) x${i.quantity}`).join(", ")}</p>
+                        <p class="mt-2 font-bold text-blue-600">${Number(o.total).toLocaleString()} RWF</p>
+                    </div>
+                `).join("");
+            })
+            .catch(err => console.error('Error fetching orders:', err));
+    }
+
+    // rentals
+    async function renderRentals() {
+        const container = document.getElementById("rentalList");
+        const filter = document.getElementById('rentalLocationFilter').value;
+        try {
+            const res = await fetch(`${API_URL}/rentals`);
+            let rents = await res.json();
+            // populate location filter
+            const locations = [...new Set(rents.map(r => r.location))];
+            const select = document.getElementById('rentalLocationFilter');
+            locations.forEach(loc => {
+                if(!Array.from(select.options).find(o=>o.value===loc)) {
+                    const opt = document.createElement('option');
+                    opt.value = loc;
+                    opt.text = loc;
+                    select.appendChild(opt);
+                }
+            });
+            if(filter && filter !== 'All') {
+                rents = rents.filter(r=>r.location === filter);
+            }
+            if(rents.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-20 text-slate-400">No rentals available for ${filter}.</div>`;
+                return;
+            }
+            container.innerHTML = rents.map((r, i) => `
+                    <div class="product-card">
+                        <img src="${r.photos[0]||''}" class="main-img">
+                        <h3 class="font-bold text-lg text-slate-800">${r.title}</h3>
+                        <div class="text-sm text-slate-500">
+                            Location: ${r.location}<br>
+                            Address: ${r.address || 'N/A'}
+                        </div>
+                        <div class="price-tag">${Number(r.price).toLocaleString()} RWF/month</div>
+                        <div class="text-xs mb-2">Rooms: ${r.rooms}</div>
+                    </div>
+                `).join("");
+        } catch(err) {
+            console.error('Error fetching rentals:', err);
+        }
     }
 
     renderProducts();
+    handleProductLink();
+    loadProducts();
+    populateAddressOptions();
+    // rentals do not need pre-load
+
 </script>
 </body>
 </html>
